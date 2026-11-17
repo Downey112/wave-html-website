@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clean Motion Waves</title>
+<style>
+  :root {
+    --ink: #3a3d42;
+    --ink-soft: #8a8f96;
+    --line: #e7eaee;
+    --bg: #ffffff;
+    --grey: #f5f7f9;
+    --accent: #a9b8c6;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- Section 1: wave scene ---------- */
+  .scene {
+    position: relative;
+    height: 100vh;
+    overflow: hidden;
+    background: linear-gradient(180deg, #fdfefe 0%, #f3f6f8 100%);
+  }
+  #waveCanvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .scene-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    pointer-events: none;
+    padding: 0 24px;
+  }
+  .scene-overlay h1 {
+    font-weight: 300;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    letter-spacing: 0.12em;
+    color: var(--ink);
+  }
+  .scene-overlay p {
+    margin-top: 14px;
+    font-weight: 300;
+    font-size: 0.95rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .scroll-hint {
+    position: absolute;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.72rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    pointer-events: none;
+  }
+
+  /* ---------- Section 2: controls ---------- */
+  .controls {
+    min-height: 78vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--grey);
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    padding: 60px 24px;
+  }
+  .panel {
+    width: min(680px, 100%);
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 40px 44px;
+    box-shadow: 0 12px 40px rgba(58, 61, 66, 0.06);
+  }
+  .panel h2 {
+    font-weight: 400;
+    font-size: 1.15rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .panel .sub {
+    color: var(--ink-soft);
+    font-size: 0.85rem;
+    font-weight: 300;
+    margin-bottom: 34px;
+  }
+  .control-row { margin-bottom: 30px; }
+  .control-row label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+    color: var(--ink);
+    margin-bottom: 12px;
+  }
+  .control-row label span.value {
+    color: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.8rem;
+  }
+  input[type="range"] {
+    width: 100%;
+    height: 3px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--line);
+    border-radius: 2px;
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: none;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: none;
+    cursor: pointer;
+  }
+  .panel-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  button {
+    font-family: inherit;
+    font-size: 0.82rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 11px 26px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+  #pauseBtn {
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+  }
+  #pauseBtn:hover { border-color: var(--accent); color: var(--ink); }
+  #resetBtn {
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    color: #fff;
+  }
+  #resetBtn:hover { background: #97a9ba; border-color: #97a9ba; }
+
+  /* ---------- Section 3: info strip ---------- */
+  .info {
+    min-height: 60vh;
+    padding: 80px 24px 100px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .info h2 {
+    font-weight: 300;
+    font-size: 1.5rem;
+    letter-spacing: 0.1em;
+  }
+  .info .tip {
+    margin-top: 12px;
+    color: var(--ink-soft);
+    font-weight: 300;
+    font-size: 0.95rem;
+    text-align: center;
+  }
+  .notes {
+    margin-top: 44px;
+    width: min(760px, 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .note {
+    display: flex;
+    align-items: baseline;
+    gap: 18px;
+    background: var(--grey);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 22px;
+  }
+  .note .marker {
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .note p { font-weight: 300; font-size: 0.92rem; color: var(--ink); }
+  footer {
+    margin-top: 56px;
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+</style>
+</head>
+<body>
+
+<!-- Section 1: moving wave background -->
+<section class="scene" id="scene">
+  <canvas id="waveCanvas"></canvas>
+  <div class="scene-overlay">
+    <h1>Clean Motion Waves</h1>
+    <p>a calm animated motion page</p>
+  </div>
+  <div class="scroll-hint">scroll for controls</div>
+</section>
+
+<!-- Section 2: control panel -->
+<section class="controls" id="controls">
+  <div class="panel">
+    <h2>Motion Controls</h2>
+    <p class="sub">Adjust the feel of the waves — changes apply instantly.</p>
+
+    <div class="control-row">
+      <label>Speed <span class="value" id="speedValue">1.0×</span></label>
+      <input type="range" id="speedSlider" min="0.2" max="3" step="0.1" value="1">
+    </div>
+
+    <div class="control-row">
+      <label>Wave Strength <span class="value" id="strengthValue">50%</span></label>
+      <input type="range" id="strengthSlider" min="0" max="100" step="1" value="50">
+    </div>
+
+    <div class="panel-actions">
+      <button id="pauseBtn">Pause</button>
+      <button id="resetBtn">Reset</button>
+    </div>
+  </div>
+</section>
+
+<!-- Section 3: example info strip -->
+<section class="info" id="info">
+  <h2>Setup Notes</h2>
+  <p class="tip">Tip: slow the speed below 1.0× for the calmest evening-monsoon feel.</p>
+  <div class="notes">
+    <div class="note"><span class="marker">NOTE 01</span><p>Morning at KLCC park — gentle layers, speed 0.8×, strength 40%.</p></div>
+    <div class="note"><span class="marker">NOTE 02</span><p>Tioman island breeze — wide soft swells, speed 1.2×, strength 60%.</p></div>
+    <div class="note"><span class="marker">NOTE 03</span><p>Cameron Highlands mist — slow drifting curves, speed 0.5×, strength 25%.</p></div>
+  </div>
+  <footer>sample entries · nothing is saved</footer>
+</section>
+
+<script>
+(function () {
+  const canvas = document.getElementById('waveCanvas');
+  const ctx = canvas.getContext('2d');
+
+  const DEFAULTS = { speed: 1, strength: 50 };
+  let speed = DEFAULTS.speed;
+  let strength = DEFAULTS.strength;
+  let paused = false;
+  let time = 0;
+  let lastFrame = performance.now();
+
+  const speedSlider = document.getElementById('speedSlider');
+  const strengthSlider = document.getElementById('strengthSlider');
+  const speedValue = document.getElementById('speedValue');
+  const strengthValue = document.getElementById('strengthValue');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const resetBtn = document.getElementById('resetBtn');
+
+  function resize() {
+    canvas.width = canvas.clientWidth * window.devicePixelRatio;
+    canvas.height = canvas.clientHeight * window.devicePixelRatio;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  // Three layered curves; strength shifts amplitude and softness of the palette.
+  const LAYERS = [
+    { base: 0.58, amp: 30, wavelength: 0.0022, speedFactor: 0.9, hue: [169, 184, 198], alpha: 0.50 },
+    { base: 0.70, amp: 42, wavelength: 0.0016, speedFactor: 0.6, hue: [148, 168, 188], alpha: 0.42 },
+    { base: 0.82, amp: 56, wavelength: 0.0011, speedFactor: 0.4, hue: [128, 152, 176], alpha: 0.34 }
+  ];
+
+  function draw() {
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    // 0..100 -> 0.25..1.75 amplitude multiplier, with smooth low end
+    const s = 0.25 + (strength / 100) * 1.5;
+    const t = time;
+
+    LAYERS.forEach(function (layer, i) {
+      const baseY = h * layer.base;
+      const amp = layer.amp * window.devicePixelRatio * s * (1 + i * 0.35);
+      ctx.beginPath();
+      ctx.moveTo(0, h);
+
+      const wl = layer.wavelength / window.devicePixelRatio;
+      for (let x = 0; x <= w; x += 4) {
+        const phase = t * 0.001 * layer.speedFactor * speed;
+        const y = baseY
+          + Math.sin(x * wl * Math.PI * 2 + phase * (i + 1)) * amp
+          + Math.sin(x * wl * Math.PI * 3.3 + phase * 1.6) * amp * 0.25;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(w, h);
+      ctx.closePath();
+
+      const c = layer.hue;
+      const greyShift = 1 - (strength / 100) * 0.35; // dramatic strength -> slightly deeper tone
+      ctx.fillStyle = 'rgba('
+        + Math.round(c[0] * greyShift) + ','
+        + Math.round(c[1] * greyShift) + ','
+        + Math.round(c[2] * greyShift) + ','
+        + layer.alpha + ')';
+      ctx.fill();
+    });
+  }
+
+  function loop(now) {
+    if (!paused) {
+      const dt = Math.min(now - lastFrame, 50);
+      time += dt * speed;
+    }
+    lastFrame = now;
+    draw();
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  // ---- Live motion control ----
+  speedSlider.addEventListener('input', function () {
+    speed = parseFloat(speedSlider.value);
+    speedValue.textContent = speed.toFixed(1) + '×';
+  });
+
+  // ---- Style change ----
+  strengthSlider.addEventListener('input', function () {
+    strength = parseInt(strengthSlider.value, 10);
+    strengthValue.textContent = strength + '%';
+  });
+
+  // ---- Pause toggle (bonus convenience) ----
+  pauseBtn.addEventListener('click', function () {
+    paused = !paused;
+    pauseBtn.textContent = paused ? 'Play' : 'Pause';
+  });
+
+  // ---- Reset ----
+  resetBtn.addEventListener('click', function () {
+    speed = DEFAULTS.speed;
+    strength = DEFAULTS.strength;
+    speedSlider.value = speed;
+    strengthSlider.value = strength;
+    speedValue.textContent = speed.toFixed(1) + '×';
+    strengthValue.textContent = strength + '%';
+    paused = false;
+    pauseBtn.textContent = 'Pause';
+  });
+})();
+</script>
+</body>
+</html>
